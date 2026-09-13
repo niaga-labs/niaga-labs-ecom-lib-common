@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — repo name and Go module path follow the org naming ruling (HQ-89)
+
+- **The module path is `github.com/niaga-labs/niaga-labs-ecom-lib-common`** (was
+  `github.com/niaga-labs/lib-common`); the repo was renamed the same way on 2026-09-13, and GitHub redirects
+  the old URL. Every importer must change its import paths and its `require`/`replace` lines: the 10 ecom
+  services do in the same change set (HQ-89, one PR each, merged after this one). A service still on the old
+  path fails with "module declares its path as … but was required as …" until its own PR lands.
+
 ### Fixed — a failed event handler can be retried again (NIAGA-263)
 
 - `IdempotencyChecker.Release(ctx, eventID, consumerName)` gives back the claim `CheckAndMark`

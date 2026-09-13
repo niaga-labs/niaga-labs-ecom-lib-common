@@ -1,7 +1,7 @@
 # Niaga — lib-common
 
 Shared Go library for every Niaga service: config loading, database and NATS helpers, auth middleware, logging, the transactional outbox and event sourcing.
-Jira project **NIAGA** · GitHub `niaga-labs/lib-common` · Go 1.24.0 · module `github.com/niaga-labs/lib-common`.
+Jira project **NIAGA** · GitHub `niaga-labs/niaga-labs-ecom-lib-common` · Go 1.25.0 · module `github.com/niaga-labs/niaga-labs-ecom-lib-common`.
 Library, not a service: no `cmd/`, no port, no database of its own.
 Owns `events`, `outbox` in `niaga_db` (3 tables referenced by `TableName()`).
 
