@@ -1,7 +1,7 @@
 package nats
 
 import (
-	"github.com/niaga-labs/lib-common/eventsourcing"
+	"github.com/niaga-labs/niaga-labs-ecom-lib-common/eventsourcing"
 	"strings"
 	"testing"
 )

@@ -4,12 +4,12 @@ Shared Go code for the Niaga platform: configuration, database and NATS plumbing
 transactional outbox, and the **canonical event subject catalog** every service publishes and consumes
 through.
 
-Module path `github.com/niaga-labs/lib-common`. Public since 2026-09-05, so CI in the other repos checks it
+Module path `github.com/niaga-labs/niaga-labs-ecom-lib-common`. Public since 2026-09-05, so CI in the other repos checks it
 out with no token.
 
 Consumed by **ten** Go services — every `service-*` repo — via a `replace` directive in their `go.mod` during
 local development, and by a sibling checkout in CI. Counted with
-`grep -rl "replace github.com/niaga-labs/lib-common" --include=go.mod`.
+`grep -rl "replace github.com/niaga-labs/niaga-labs-ecom-lib-common" --include=go.mod`.
 
 **Ten consume it; only eight have CI.** `service-marketplace` and `service-support` have no
 `.github/workflows` at all, so the familiar "the eight Go services" from the workspace's `ci-known-red.txt`

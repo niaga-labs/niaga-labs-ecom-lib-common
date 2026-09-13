@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/niaga-labs/lib-common/response"
+	"github.com/niaga-labs/niaga-labs-ecom-lib-common/response"
 )
 
 // Service-to-service authentication for the /internal/* routes.

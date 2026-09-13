@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/niaga-labs/lib-common/response"
+	"github.com/niaga-labs/niaga-labs-ecom-lib-common/response"
 )
 
 // CSRFProtection implements double-submit cookie pattern for CSRF protection

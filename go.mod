@@ -1,4 +1,4 @@
-module github.com/niaga-labs/lib-common
+module github.com/niaga-labs/niaga-labs-ecom-lib-common
 
 go 1.25.0
 
