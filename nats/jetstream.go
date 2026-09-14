@@ -124,12 +124,11 @@ var DefaultStreams = []StreamConfig{
 		// events.customer.back_in_stock could be enqueued in the outbox and then
 		// never leave it.
 		//
-		// Such a row is retried INDEFINITELY, and it is worth knowing which query
-		// makes that true: processBatch selects on GetUnprocessedEvents, whose
-		// filter is only `processed_at IS NULL` — no retry cap. The capped path,
-		// GetFailedEvents (retry_count < MaxRetries), is a SECOND, supplementary
-		// attempt in the same tick. So the cap limits the extra attempt and never
-		// the base one. (Both selecting the same row is NIAGA-207.)
+		// Such a row is now retried once per tick until it has failed MaxRetries
+		// times (default 5), then left in outbox.events with its error for a person
+		// to read. Before NIAGA-207 it was retried INDEFINITELY: the main query had
+		// no cap, and the capped retry pass was a second attempt in the same tick
+		// that limited only itself.
 		//
 		// That is the loud half of the failure. The quiet half is the one to
 		// remember: a consumer bound to a subject nothing publishes is a HEALTHY

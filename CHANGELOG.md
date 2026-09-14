@@ -5,6 +5,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — an outbox row is published once, whichever services are running (NIAGA-207)
+
+- **Two processors published the same row.** Every service that starts a `Processor` drains the one shared
+  `outbox.events` table, and `GetUnprocessedEvents` took no lock. In the new test, two concurrent processors
+  over 300 rows published **295 of them twice** on the old code.
+- **`Outbox.ProcessNext`** claims ONE row per transaction with `SELECT ... FOR UPDATE SKIP LOCKED`, publishes
+  it, marks it processed or failed, and commits. Another processor skips a row in flight. The shared drain
+  (any processor may publish any service's row) is kept on purpose and commented; no owner column.
+- **One retry policy, and the cap is real.** `processBatch` also had a second pass, `retryFailedEvents`, that
+  re-selected failed rows in the same tick, so a failing row was attempted twice per tick. Meanwhile the
+  main query had no cap, so a row retried forever. Now a row is tried at most once per tick, only while
+  `retry_count < MaxRetries` (default 5). After that it stays in the table with its error, and an ERROR log
+  line says so. The retry pass is deleted.
+- **Crash semantics are at-least-once**, written down at `ProcessNext`. The mark commits after the publish,
+  so a crash between them republishes; JetStream dedupes that by the `Nats-Msg-Id` header.
+- `NewProcessor` falls back to the defaults for a zero `BatchSize`, `MaxRetries` or `Interval`. A zero cap
+  would have claimed nothing and published silently never. All seven services pass
+  `DefaultProcessorConfig()` today, so this changes nothing for them.
+- `GetUnprocessedEvents` and `GetFailedEvents` stay, marked `Deprecated`; no service calls either.
+- **Tests:** `outbox/processor_pg_test.go`, 5 tests against a real Postgres (`OUTBOX_TEST_DSN`, a scratch
+  database; they refuse `niaga_db`):
+  - the two-processor race;
+  - one attempt per tick for a failing row;
+  - a failing head row does not block the rows behind it;
+  - a row at the cap is not attempted;
+  - a zero config still publishes.
+  All 5 fail on `main` and pass here. The race test passed 5 of 5 repeats.
+- Whole suite: 103 pass with the DSN, 98 pass and 5 skip without it. gofmt clean on every changed file;
+  vet and build clean. service-order, service-support and service-marketplace build against it.
+
 ### Changed — repo name and Go module path follow the org naming ruling (HQ-89)
 
 - **The module path is `github.com/niaga-labs/niaga-labs-ecom-lib-common`** (was

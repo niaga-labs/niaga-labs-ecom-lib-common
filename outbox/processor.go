@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -44,8 +45,20 @@ func DefaultProcessorConfig() ProcessorConfig {
 	}
 }
 
-// NewProcessor creates a new outbox processor
+// NewProcessor creates a new outbox processor. A zero BatchSize or MaxRetries falls
+// back to the default: a cap of 0 would claim nothing and a batch of 0 would take
+// nothing, so a caller that set only the interval would publish silently never.
 func NewProcessor(outbox *Outbox, publisher Publisher, logger *zap.Logger, config ProcessorConfig) *Processor {
+	def := DefaultProcessorConfig()
+	if config.BatchSize <= 0 {
+		config.BatchSize = def.BatchSize
+	}
+	if config.MaxRetries <= 0 {
+		config.MaxRetries = def.MaxRetries
+	}
+	if config.Interval <= 0 {
+		config.Interval = def.Interval
+	}
 	return &Processor{
 		outbox:     outbox,
 		publisher:  publisher,
@@ -88,46 +101,46 @@ func (p *Processor) run(ctx context.Context) {
 	}
 }
 
+// processBatch claims and publishes up to batchSize rows, one per transaction
+// (Outbox.ProcessNext). A row is tried at most once per tick: a failed row is
+// excluded from the rest of this tick and waits for the next one, until it has
+// failed maxRetries times. There is no separate retry pass. Before NIAGA-207 one
+// re-selected every failed row in the same tick, attempting it twice, while the
+// main query had no cap at all, so the cap never stopped anything.
 func (p *Processor) processBatch() {
-	// Get unprocessed events
-	events, err := p.outbox.GetUnprocessedEvents(p.batchSize)
-	if err != nil {
-		p.logger.Error("Failed to get unprocessed events", zap.Error(err))
-		return
-	}
-
-	if len(events) == 0 {
-		return
-	}
-
-	p.logger.Debug("Processing outbox events", zap.Int("count", len(events)))
-
-	for _, event := range events {
-		if err := p.processEvent(event); err != nil {
-			p.logger.Error("Failed to process event",
-				zap.String("event_id", event.ID.String()),
-				zap.String("event_type", event.EventType),
-				zap.Error(err))
-
-			// Mark as failed for retry
-			if markErr := p.outbox.MarkFailed(event.ID, err.Error()); markErr != nil {
-				p.logger.Error("Failed to mark event as failed",
-					zap.String("event_id", event.ID.String()),
-					zap.Error(markErr))
-			}
+	var tried []uuid.UUID
+	published := 0
+	for len(tried) < p.batchSize {
+		res, err := p.outbox.ProcessNext(p.maxRetries, tried, p.processEvent)
+		if err != nil {
+			p.logger.Error("Failed to claim an outbox event", zap.Error(err))
+			return
+		}
+		if !res.Claimed {
+			break
+		}
+		tried = append(tried, res.Event.ID)
+		if res.PublishErr == nil {
+			published++
 			continue
 		}
-
-		// Mark as processed
-		if err := p.outbox.MarkProcessed(event.ID); err != nil {
-			p.logger.Error("Failed to mark event as processed",
-				zap.String("event_id", event.ID.String()),
-				zap.Error(err))
+		attempts := res.Event.RetryCount + 1
+		p.logger.Error("Failed to publish outbox event",
+			zap.String("event_id", res.Event.ID.String()),
+			zap.String("event_type", res.Event.EventType),
+			zap.Int("attempt", attempts),
+			zap.Int("max_retries", p.maxRetries),
+			zap.Error(res.PublishErr))
+		if attempts >= p.maxRetries {
+			p.logger.Error("Outbox event reached MaxRetries and will not be attempted again; it stays in outbox.events with its error",
+				zap.String("event_id", res.Event.ID.String()),
+				zap.String("event_type", res.Event.EventType))
 		}
 	}
-
-	// Also retry failed events
-	p.retryFailedEvents()
+	if len(tried) > 0 {
+		p.logger.Debug("Processed outbox events",
+			zap.Int("claimed", len(tried)), zap.Int("published", published))
+	}
 }
 
 func (p *Processor) processEvent(event Event) error {
@@ -146,36 +159,6 @@ func (p *Processor) processEvent(event Event) error {
 	// Backward-compatible fallback for existing publishers. Prefer implementing
 	// HeaderPublisher so JetStream can dedupe outbox retries by event ID.
 	return p.publisher.Publish(subject, event.Payload)
-}
-
-func (p *Processor) retryFailedEvents() {
-	events, err := p.outbox.GetFailedEvents(p.maxRetries, p.batchSize)
-	if err != nil {
-		p.logger.Error("Failed to get failed events for retry", zap.Error(err))
-		return
-	}
-
-	for _, event := range events {
-		p.logger.Info("Retrying failed event",
-			zap.String("event_id", event.ID.String()),
-			zap.Int("retry_count", event.RetryCount))
-
-		if err := p.processEvent(event); err != nil {
-			p.logger.Error("Retry failed",
-				zap.String("event_id", event.ID.String()),
-				zap.Int("retry_count", event.RetryCount+1),
-				zap.Error(err))
-
-			if markErr := p.outbox.MarkFailed(event.ID, err.Error()); markErr != nil {
-				p.logger.Error("Failed to update retry count", zap.Error(markErr))
-			}
-			continue
-		}
-
-		if err := p.outbox.MarkProcessed(event.ID); err != nil {
-			p.logger.Error("Failed to mark retried event as processed", zap.Error(err))
-		}
-	}
 }
 
 // ProcessNow forces immediate processing (useful for testing)
