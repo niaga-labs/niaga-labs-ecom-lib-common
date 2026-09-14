@@ -100,7 +100,10 @@ type ClaimResult struct {
 //
 // Retry cap. Only rows with retry_count < maxRetries are claimed. A row that has
 // failed maxRetries times stays in the table with its error and processed_at NULL,
-// for a person to read. It is no longer attempted.
+// for a person to read. It is no longer attempted. The cap is the CALLING
+// processor's MaxRetries, checked per claim, not a property of the row: two
+// processors with different caps would disagree. Every service passes
+// DefaultProcessorConfig today, so they agree on 5.
 //
 // Crash semantics: at-least-once. publish runs before the mark commits. If the
 // process dies between the two, the transaction rolls back, the lock is released

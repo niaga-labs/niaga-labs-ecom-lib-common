@@ -113,6 +113,9 @@ func (p *Processor) processBatch() {
 	for len(tried) < p.batchSize {
 		res, err := p.outbox.ProcessNext(p.maxRetries, tried, p.processEvent)
 		if err != nil {
+			// End the tick rather than continue. A DB error here may come after a
+			// publish whose mark rolled back; that row is not in `tried`, so the next
+			// ProcessNext would claim and publish it again this very tick.
 			p.logger.Error("Failed to claim an outbox event", zap.Error(err))
 			return
 		}
