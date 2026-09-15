@@ -5,6 +5,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — `CONVENTIONS.md` is back, rewritten from the response code as it is today (NIAGA-272)
+
+- infra-platform's API Conformance summary links `lib-common/CONVENTIONS.md` "for the full standard the gate
+  enforces". The file was deleted in `f5a7d70`, so the link answered 404.
+- It is restored with only what was checked. It covers:
+  - §3 the envelope, the nil-`data` rules, and every helper with its status and `error.code`;
+  - §4 pagination `meta`;
+  - §5 exactly what the gate checks.
+  The JSON samples are real output of the helpers, printed by a scratch program. The old sections on URLs,
+  casing, middleware, OpenAPI and NATS were not restored unchecked; the file says where the old text is.
+- **Two things the old text got wrong:**
+  - A success has no `"error": null`, because the key is omitted.
+  - An empty page's `meta` has no `total_count` and no `total`, because every `meta` field is `omitempty`:
+    `{"page":1,"limit":20,"total_pages":1}`. A client reading `meta.total` gets `undefined`, not 0.
+- **The gate asserts less than its summary says.** Its 15 smoke probes check `status 200` and
+  `success: true`, and five of them add six `data` assertions between them. None checks `meta` or the error
+  shape. §5 says so, and
+  infra-platform's summary is corrected in the same ticket.
+- `response.go`: one comment corrected. It said `Deleted` answers `data: null`; it sends no `data` key.
+
 ### Docs — `events.user.registered` has a second consumer, service-customer (NIAGA-235)
 
 - The README's subject table now lists service-customer next to service-notification. Its new durable consumer

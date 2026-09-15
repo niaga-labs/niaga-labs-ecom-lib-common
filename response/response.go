@@ -318,7 +318,8 @@ func DefaultOrderErrorTranslator() *ErrorTranslator {
 // should not sometimes mean "nothing at all" (DMB-74).
 //
 // What it deliberately does NOT touch:
-//   - an untyped nil, so `Deleted` and friends still answer `null`;
+//   - an untyped nil, so `Deleted` and friends still send no `data` key at all
+//     (omitempty drops it; measured in NIAGA-272, see CONVENTIONS.md §3);
 //   - a nil pointer, because "the object you asked for does not exist" is genuinely
 //     null and must not become `[]`;
 //   - a non-nil collection, including one that is already empty.
