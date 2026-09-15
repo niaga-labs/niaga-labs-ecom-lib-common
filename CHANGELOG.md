@@ -5,6 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — `events.user.registered` has a second consumer, service-customer (NIAGA-235)
+
+- The README's subject table now lists service-customer next to service-notification. Its new durable consumer
+  `customer-events-user-registered` creates the customer's `customers.customers` row, keyed by the user id.
+- Until NIAGA-235, service-auth defined the publisher and never called it, so the table's "service-auth" row
+  described a constant, not traffic. No code in this repo changes.
+
 ### Fixed — an outbox row is published once, whichever services are running (NIAGA-207)
 
 - **Two processors published the same row.** Every service that starts a `Processor` drains the one shared
