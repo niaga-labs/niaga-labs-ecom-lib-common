@@ -50,7 +50,7 @@ Publisher and consumer are read from where the constant is used — `internal/ev
 
 | Subject | Publisher | Consumers |
 |---|---|---|
-| `events.user.registered` | service-auth | service-notification |
+| `events.user.registered` | service-auth | service-notification, service-customer |
 | `events.user.password_reset_requested` | service-auth | service-notification |
 | `events.order.created` | service-order | service-inventory, service-notification |
 | `events.order.confirmed` | service-order | service-inventory |
