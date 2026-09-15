@@ -18,14 +18,26 @@ type SentryConfig struct {
 	TracesSampleRate float64
 }
 
-// SentryMonitor provides Sentry integration for monitoring
+// SentryMonitor provides Sentry integration for monitoring.
+//
+// Every method is safe on a nil *SentryMonitor and on one built with no DSN: both act as
+// "Sentry off". Sentry is optional, so nothing about it may take a service down.
 type SentryMonitor struct {
 	logger *zap.Logger
 	config *SentryConfig
 }
 
-// NewSentryMonitor creates a new Sentry monitor instance
+// NewSentryMonitor creates a new Sentry monitor instance.
+//
+// It never returns a nil monitor. An empty DSN gives a no-op monitor and a nil error. A DSN that
+// sentry.Init rejects (a typo, a malformed value) gives the SAME no-op monitor together with the error,
+// so the caller can log it and keep booting. Returning nil there used to panic all nine services at
+// boot, because every caller goes on to call GinMiddleware, RecoveryMiddleware and a deferred Flush
+// (NIAGA-309).
 func NewSentryMonitor(config *SentryConfig, logger *zap.Logger) (*SentryMonitor, error) {
+	if config == nil {
+		config = &SentryConfig{}
+	}
 	if config.DSN == "" {
 		// Skip Sentry initialization if DSN is not provided
 		return &SentryMonitor{
@@ -42,7 +54,14 @@ func NewSentryMonitor(config *SentryConfig, logger *zap.Logger) (*SentryMonitor,
 		AttachStacktrace: true,
 	})
 	if err != nil {
-		return nil, err
+		// A copy with the DSN cleared, so every method takes its no-op branch. The caller's config is
+		// not modified.
+		off := *config
+		off.DSN = ""
+		return &SentryMonitor{
+			logger: logger,
+			config: &off,
+		}, err
 	}
 
 	return &SentryMonitor{
@@ -51,9 +70,22 @@ func NewSentryMonitor(config *SentryConfig, logger *zap.Logger) (*SentryMonitor,
 	}, nil
 }
 
+// enabled reports whether Sentry was started. False for a nil monitor, a nil config, or no DSN.
+func (m *SentryMonitor) enabled() bool {
+	return m != nil && m.config != nil && m.config.DSN != ""
+}
+
+// log returns the monitor's logger, or nil for a nil monitor.
+func (m *SentryMonitor) log() *zap.Logger {
+	if m == nil {
+		return nil
+	}
+	return m.logger
+}
+
 // GinMiddleware returns a Gin middleware for Sentry
 func (m *SentryMonitor) GinMiddleware() gin.HandlerFunc {
-	if m.config.DSN == "" {
+	if !m.enabled() {
 		// Return a no-op middleware if Sentry is not configured
 		return func(c *gin.Context) {
 			c.Next()
@@ -69,11 +101,11 @@ func (m *SentryMonitor) RecoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				if m.config.DSN != "" {
+				if m.enabled() {
 					sentry.CurrentHub().Recover(err)
 				}
-				if m.logger != nil {
-					m.logger.Error("Panic recovered", zap.Any("error", err))
+				if l := m.log(); l != nil {
+					l.Error("Panic recovered", zap.Any("error", err))
 				}
 				c.AbortWithStatus(500)
 			}
@@ -84,27 +116,27 @@ func (m *SentryMonitor) RecoveryMiddleware() gin.HandlerFunc {
 
 // Flush flushes any buffered events to Sentry
 func (m *SentryMonitor) Flush(timeout time.Duration) {
-	if m.config.DSN != "" {
+	if m.enabled() {
 		sentry.Flush(timeout)
 	}
 }
 
 // CaptureError reports an error to Sentry
 func (m *SentryMonitor) CaptureError(err error) {
-	if m.config.DSN != "" {
+	if m.enabled() {
 		sentry.CaptureException(err)
 	}
-	if m.logger != nil {
-		m.logger.Error("Error captured", zap.Error(err))
+	if l := m.log(); l != nil {
+		l.Error("Error captured", zap.Error(err))
 	}
 }
 
 // CaptureMessage reports a message to Sentry
 func (m *SentryMonitor) CaptureMessage(msg string) {
-	if m.config.DSN != "" {
+	if m.enabled() {
 		sentry.CaptureMessage(msg)
 	}
-	if m.logger != nil {
-		m.logger.Info("Message captured", zap.String("message", msg))
+	if l := m.log(); l != nil {
+		l.Info("Message captured", zap.String("message", msg))
 	}
 }

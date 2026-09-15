@@ -5,6 +5,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — a malformed `SENTRY_DSN` no longer crashes nine services at boot (NIAGA-309)
+
+- **Before:** `NewSentryMonitor` returned `nil, err` when `sentry.Init` rejected the DSN. Every service logs
+  that error and carries on, then calls `GinMiddleware()` and `RecoveryMiddleware()` while building its router,
+  with a deferred `Flush`. Nine services do this: agent, auth, catalog, customer, inventory, marketplace,
+  order, reporting and support.
+  - **Reproduced by a boot**, not only read: service-support on `origin/main` with `SENTRY_DSN=not-a-dsn`
+    logged `Failed to initialize Sentry … DsnParseError: invalid scheme`, then panicked on a nil pointer in
+    `GinMiddleware` (and again in the deferred `Flush`), exit code 2.
+- **Now:** the constructor never returns nil. A rejected DSN gives the same no-op monitor as an empty DSN,
+  **together with** the error, so each caller's Warn line still fires (and service-order's `enabled` boot line
+  stays right). Every method is also safe on a nil `*SentryMonitor` and on a nil config. An empty or valid DSN
+  behaves as before, and the caller's config is not modified.
+- Tests: `monitoring/sentry_test.go`, 5 tests. Each drives both middlewares through a gin engine (200, and a
+  panicking handler → 500) and calls `CaptureError`, `CaptureMessage` and `Flush`; the cases are a malformed
+  DSN, an empty DSN, a nil config, a nil receiver and a valid-shaped DSN. **Against the old `sentry.go`**:
+  `MalformedDSN` fails (`monitor = nil`) and `NilConfig` panics. `go test ./...`: 103 pass, 0 fail, 5 skip
+  (was 98).
+- **Boot proof after the fix**, the same service-support build with `SENTRY_DSN=not-a-dsn`: the same Warn, no
+  panic, `/health` 200. With an empty DSN, `/health` 200 as before.
+
 ### Docs — `CONVENTIONS.md` is back, rewritten from the response code as it is today (NIAGA-272)
 
 - infra-platform's API Conformance summary links `lib-common/CONVENTIONS.md` "for the full standard the gate
