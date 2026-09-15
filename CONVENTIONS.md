@@ -114,8 +114,14 @@ then the nine `bruno-tests/<service>/smoke` folders against the compose stack. C
 on 2026-09-16:
 
 - **15 smoke probes. Every one asserts `res.status eq 200` and `res.body.success eq true`.**
-- Five of them add one field check each: `data isDefined`, `data isArray`, `data.slug`, `data.role`, and
-  `data.id` or `data.email`.
+- Five of them also check `data`, **six assertions in all**:
+  - service-customer `01-get-profile`: `data isDefined`;
+  - service-customer `02-list-addresses`: `data isArray`;
+  - service-catalog `02-get-product`: `data.slug`;
+  - service-inventory `02-get-warehouse`: `data.id`;
+  - service-auth `01-get-me`: `data.email` **and** `data.role`.
+- Three list probes (agents, products, warehouses) also run a post-response script. It only stores an id for
+  the next probe (`bru.setEnvVar`) and asserts nothing. No smoke probe has a `test()` or `expect()`.
 - **Not checked by the gate:**
   - the `meta` shape (the only `res.body.meta` assertions in bruno-tests are in four non-smoke probes, which the
     gate does not run);

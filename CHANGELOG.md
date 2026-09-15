@@ -20,7 +20,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - An empty page's `meta` has no `total_count` and no `total`, because every `meta` field is `omitempty`:
     `{"page":1,"limit":20,"total_pages":1}`. A client reading `meta.total` gets `undefined`, not 0.
 - **The gate asserts less than its summary says.** Its 15 smoke probes check `status 200` and
-  `success: true`, plus five single-field checks. None checks `meta` or the error shape. §5 says so, and
+  `success: true`, and five of them add six `data` assertions between them. None checks `meta` or the error
+  shape. §5 says so, and
   infra-platform's summary is corrected in the same ticket.
 - `response.go`: one comment corrected. It said `Deleted` answers `data: null`; it sends no `data` key.
 
