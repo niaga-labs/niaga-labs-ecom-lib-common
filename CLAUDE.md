@@ -12,6 +12,8 @@ Global rules live in `~/.claude/`; this file only adds what is specific here.
 - `.claude/memory/project_state.md` — **resume here** (`/continue` reads it, `/recap` rewrites it).
 - `CHANGELOG.md` — what changed.
 - `README.md` — package index and the **event subject catalog** (subject > publisher > consumers), NIAGA-117.
+- `CONVENTIONS.md` — the response envelope and pagination `meta` as `response/` emits them, and exactly what
+  infra-platform's API Conformance gate checks (NIAGA-272). The gate's summary links it.
 - `../CLAUDE.md` — the workspace repo map and the cross-repo change order.
 - `../infra-platform/docs/LOCAL_DEV.md` — bringing the whole platform up locally.
 
