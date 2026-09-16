@@ -5,6 +5,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — `bizday`: a day is a Malaysian day (NIAGA-302)
+
+- New package `bizday`. `Current()` is the business time zone, from `BUSINESS_TIMEZONE`, default
+  `Asia/Kuala_Lumpur`, with tzdata embedded. A value that is not a real IANA zone falls back to the default,
+  and `ConfigError()` says why.
+- SQL helpers replace the UTC-cut forms:
+  - `SQLDate(col)` replaces `DATE(col)`
+  - `SQLTrunc(unit, col)` replaces `date_trunc(unit, col)`
+  - `SQLStartOf("day"|"month")` replaces `CURRENT_DATE` / `date_trunc('month', CURRENT_DATE)` in timestamptz
+    comparisons
+  - `ParseDate` / `StartOfDay` cover the Go side
+- Why: `niaga_db` runs in UTC, so every one of those cut days at 08:00 MYT.
+- The zone is written into SQL as a literal, so it must pass a strict name pattern and `time.LoadLocation`.
+  `Asia/Kuala_Lumpur'; DROP…` is refused.
+- Checked on the dev Postgres: `2026-09-15 16:30Z` → `2026-09-16` via `SQLDate`, and `2026-09-15` via `DATE()`.
+- Tests: 8 new; `go test ./...` 89 top-level + 22 subtests pass, 0 fail, 5 skip (container).
+
 ### Docs — `CONVENTIONS.md` §5 now records what the gate actually checks (NIAGA-321)
 
 - The section said the gate checked 15 smoke probes on status and `success` only, and listed the `meta`

@@ -21,6 +21,7 @@ is a count of *CI workflows*, not of lib-common's consumers. An earlier draft of
 | Package | What it holds |
 |---|---|
 | `auth` | JWT parsing, API-key and internal-token middleware, `IsDevEnv` |
+| `bizday` | the business time zone (`BUSINESS_TIMEZONE`, default `Asia/Kuala_Lumpur`) and SQL for "which day": use it for every day bucket and "today" count (NIAGA-302) |
 | `config` | env loading and the shared config shape |
 | `database` | Postgres connection helpers |
 | `domain` | shared value types — money, quantity, typed errors |
