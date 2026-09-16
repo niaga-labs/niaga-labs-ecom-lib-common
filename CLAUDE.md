@@ -39,8 +39,9 @@ Global rules live in `~/.claude/`; this file only adds what is specific here.
 - Entry point: no `cmd/` — this is a library
 - Packages: `auth`, `config`, `database`, `domain`, `eventsourcing`, `lock`, `logger`, `middleware`, `monitoring`, `nats`
 - Config: `config/`
-- Tests: **13** `*_test.go` files across `auth`, `domain`, `eventsourcing`, `monitoring`, `nats`, `outbox` and
-  `response`. Measured 2026-09-16: **103 pass, 0 fail, 5 skip** by default (NIAGA-309 added `monitoring`'s 5).
+- Tests: **14** `*_test.go` files across `auth`, `bizday`, `domain`, `eventsourcing`, `monitoring`, `nats`, `outbox` and
+  `response`. Measured 2026-09-17 in the container: **89 top-level + 22 subtests pass, 0 fail, 5 skip** by default
+  (NIAGA-302 added `bizday`'s 8; NIAGA-309 added `monitoring`'s 5).
   The 5 skips are `outbox/processor_pg_test.go`, which needs real `SKIP LOCKED`, runs only with
   `OUTBOX_TEST_DSN` pointing at a scratch Postgres database, and refuses to run against `niaga_db` (NIAGA-207).
   It was not re-run with the DSN on 2026-09-16.
