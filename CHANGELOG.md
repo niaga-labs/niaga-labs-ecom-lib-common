@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — `CONVENTIONS.md` §5 now records what the gate actually checks (NIAGA-321)
+
+- The section said the gate checked 15 smoke probes on status and `success` only, and listed the `meta`
+  shape and the error envelope under "not checked". Both are now checked: five paginated list probes
+  assert `meta.page`/`limit`/`total_pages` are numbers (three of them, whose seed guarantees rows, also
+  `total`/`total_count`), and a new service-inventory probe asserts a 404 with `success: false` and
+  `error.code eq NOT_FOUND`. Counts and the live run are recorded there.
+- No code in this library changed — the standard was already right; §5 is the record of what enforces it.
+
 ### Fixed — a malformed `SENTRY_DSN` no longer crashes nine services at boot (NIAGA-309)
 
 - **Before:** `NewSentryMonitor` returned `nil, err` when `sentry.Init` rejected the DSN. Every service logs
