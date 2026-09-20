@@ -5,6 +5,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security — access, refresh and pending-2FA tokens were interchangeable (NIAGA-344)
+
+- `generateToken` accepted a `tokenType` argument and **never serialized it**. `Claims` had no purpose
+  field, `GenerateTokenPair` and `GenerateTempToken` minted the same shape with the same key, and
+  `ValidateToken` checked signature, method and time and nothing else. A refresh token was therefore a
+  working long-lived access token at every middleware in every service, and a pending-2FA token — issued
+  after the password check but *before* the OTP — opened any route guarded by `AuthMiddleware` alone.
+- `Claims` now carries `token_type` (`access` / `refresh` / `temp`) and, for temporary tokens, `purpose`.
+- **`ValidateToken` keeps its exact name and signature and now means "a valid ACCESS token".** That was
+  deliberate: five call sites across three repos already call it, and the safe behaviour should be the one
+  they get without being edited. `service-order`'s two middlewares are fixed by recompiling. Callers that
+  genuinely want another kind of token must now say so, through the new `ValidateTokenOfType`.
+- **A token minted before this change is refused, not grandfathered.** It has no `token_type`, and an empty
+  purpose matches nothing. Accepting it would *be* the vulnerability, because a pre-change refresh token is
+  indistinguishable from a pre-change access token. Everyone holding one is logged out once; the access TTL
+  is 15 minutes and there is no production traffic yet.
+- Signature and expiry are still checked **before** the purpose, so a wrong-purpose token cannot be told
+  from an expired one by which error comes back first.
+- `GenerateTempToken` still puts the purpose in `Role` as well, because `twofactor_handler.go` gates on
+  `claims.Role == "2fa_pending"`; moving that is not this ticket's job, and the gate that now matters is the
+  `token_type` claim.
+- Checks: `go build ./...` **exit 0** · `go vet ./...` **exit 0** · `go test ./...` **8 packages pass,
+  0 fail**; `auth` alone is **23 pass, 0 fail** (7 of them new here).
+
+
 ### Fixed — the repo did not build after NIAGA-387: grpc v1.64.0 → v1.84.0 (NIAGA-392)
 
 - `go build ./...` on main exited 1 with
