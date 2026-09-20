@@ -5,6 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security — golang.org/x/crypto v0.36.0 → 0.52.0 (NIAGA-387)
+
+- Part of the workspace-wide sweep split out of NIAGA-374, which found **all eleven** Go repos below
+  `0.52.0`. service-notification's 13 Dependabot alerts were every one of them this single module, each with
+  vulnerable range `< 0.52.0` and `first_patched_version 0.52.0` — so the same advisories were latent here.
+- It is `// indirect` here; nothing in this repo imports a `golang.org/x/crypto` package. Every advisory is in `x/crypto/ssh` — agent constraint enforcement, FIDO/U2F physical
+  presence, certificate bypass, server panic and deadlock, pathological RSA/DSA parameters. Nothing here
+  speaks SSH, so the practical exposure was low. **That is a statement about urgency, not about whether to
+  fix it**: the module was in the graph and the bump is one line.
+- `go get golang.org/x/crypto@v0.52.0 && go mod tidy`, run in the container so the toolchain matches
+  (HQ-22). It carried four siblings, and all ten repos landed on **identical** versions: `x/net` 0.54.0,
+  `x/sync` 0.20.0, `x/sys` 0.45.0, `x/text` 0.37.0. **No framework version moved** — gin, gorm and nats are
+  untouched, per the ticket's Do-not, checked by grepping every `go.mod` diff for them.
+- Container, **before and after**: **111 pass, 0 fail, 5 skip, 8 packages — identical**. An `x/crypto` bump should be invisible to this
+  suite; measuring the other side is what makes "unchanged" a finding rather than an assumption.
+
 ### Added — `bizday`: a day is a Malaysian day (NIAGA-302)
 
 - New package `bizday`. `Current()` is the business time zone, from `BUSINESS_TIMEZONE`, default
