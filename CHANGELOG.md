@@ -5,6 +5,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — the repo did not build after NIAGA-387: grpc v1.64.0 → v1.84.0 (NIAGA-392)
+
+- `go build ./...` on main exited 1 with
+  `google.golang.org/grpc/internal/transport: undefined: http2.TrailerPrefix`.
+- **Not a deleted symbol, and not really a version conflict.** `golang.org/x/net@v0.54.0/http2/server.go`
+  still declares `const TrailerPrefix`, but behind `//go:build !(go1.27 && !http2legacy)` — from Go 1.27 the
+  bundled http2 server stands aside for the standard library's. The toolchain on this laptop is
+  **go1.27.0**, while the workspace docs still say Go 1.25, so the file was excluded and the package
+  exported nothing for grpc to link against. x/net 0.38.0 predates that constraint, which is why
+  NIAGA-387's bump from 0.38.0 to 0.54.0 is what surfaced it.
+- Bumping grpc a little does nothing: v1.64.0 and v1.68.0 both still reference the symbol (measured).
+  **v1.84.0 does not.** `go mod tidy` carried genproto, protobuf and x/net (0.54.0 → 0.57.0) along.
+- Nothing here imports grpc directly — `grep -rln google.golang.org/grpc --include=*.go .` finds no source
+  file. It arrives transitively through the OpenTelemetry export path.
+- **The same break hit three services**, each pinning grpc v1.64.0: `service-agent`, `service-inventory`,
+  `service-marketplace`. `service-order` pins the same pair and is almost certainly affected, but it was
+  held by another session and deliberately not built. The six services that never pinned grpc
+  (auth, catalog, customer, notification, reporting, support) built clean throughout.
+- Checks: `go build ./...` **exit 0** · `go vet ./...` **exit 0** · `go test ./...` **9 packages pass,
+  0 fail**, 9 have no test files.
+- Left alone: `gofmt -l .` reports 7 files already unformatted on main (auth/apikey.go,
+  auth/apikey_middleware.go, auth/jwt.go, config/config.go, eventsourcing/nats_publisher.go,
+  middleware/health.go, validator/validator.go). Pre-existing drift, unrelated to this fix, and it does not
+  belong in a dependency change.
+
+
 ### Security — golang.org/x/crypto v0.36.0 → 0.52.0 (NIAGA-387)
 
 - Part of the workspace-wide sweep split out of NIAGA-374, which found **all eleven** Go repos below
