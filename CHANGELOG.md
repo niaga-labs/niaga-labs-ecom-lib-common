@@ -5,6 +5,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — the `| test |` row names the container, because the row is what gets copied (NIAGA-384)
+
+- Smart App Control blocks a freshly linked Go test binary at random on this laptop and reports it as a
+  **FAIL** (NIAGA-76), so the remedy is the container (HQ-22). The `sac-block-detect` hook prints the
+  container command *after* a wasted run; the Commands table is what a session reads *before* running
+  anything, and this row said the bare `go test ./...`.
+- The row also says to quote every go argument: an unquoted `-v` is swallowed by `dev.ps1`, never reaches
+  `go test`, and a green run then prints `PASS: 0` — which reads as a suite with no tests.
+- The native command is still named rather than hidden. A reader may legitimately want it; what the row
+  now says is **which one to trust** — container counts, never native ones.
+- **Documentation only.** No test file, source file or command behaviour changed.
+
+
 ### Security — access, refresh and pending-2FA tokens were interchangeable (NIAGA-344)
 
 - `generateToken` accepted a `tokenType` argument and **never serialized it**. `Claims` had no purpose
