@@ -5,6 +5,21 @@ metadata:
   type: project
 ---
 
+## 2026-09-20 state (resume here) — NIAGA-408
+
+- **`gofmt -l .` passes here again.** Six files had been unformatted on `main` (`auth/apikey.go`,
+  `auth/apikey_middleware.go`, `config/config.go`, `eventsourcing/nats_publisher.go`,
+  `middleware/health.go`, `validator/validator.go`), so the lint command this repo's CLAUDE.md gives had
+  been failing for anyone who ran it. `go vet` was clean.
+- **The check that makes a formatting commit reviewable is `git diff --ignore-all-space --stat` coming
+  back EMPTY**, not reading the diff by eye. 26 insertions, 26 deletions, line for line.
+- Container suite **118 (96 top-level + 22 subtests), 0 fail, 5 skip, 8 packages — identical before and
+  after**. The five skips are the outbox tests that need a database; they skip in both runs, so the skip
+  count is not drift.
+- Part of the fleet sweep from NIAGA-381. Still open: service-marketplace 6 (NIAGA-409), service-auth 1
+  and service-inventory 1 (NIAGA-410).
+- **Next**: nothing outstanding here from this unit.
+
 ## 2026-09-06 state (resume here)
 
 - **Repo:** `main`, branch `feat/NIAGA-123-back-in-stock-subject`. Public since 2026-09-05.

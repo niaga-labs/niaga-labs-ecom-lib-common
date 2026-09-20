@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — `gofmt -l .`, this repo's own lint command, passes on a clean checkout again (NIAGA-408)
+
+- Six files had been unformatted on `main`: `auth/apikey.go`, `auth/apikey_middleware.go`,
+  `config/config.go`, `eventsourcing/nats_publisher.go`, `middleware/health.go` and
+  `validator/validator.go`. `gofmt -l` printing **any** name is the failure signal, so
+  `gofmt -l . && go vet ./...` had been failing on `main` for anyone who ran it. `go vet` itself was clean;
+  this was formatting only.
+- `gofmt -w` on those six and nothing else. **26 insertions, 26 deletions — line for line — and
+  `git diff --ignore-all-space --stat` comes back empty**, which is the check that proves only whitespace
+  moved rather than a promise that the diff was read carefully (the method from NIAGA-381).
+- The container suite is **118 pass (96 top-level + 22 subtests), 0 fail, 5 skip, 8 packages — identical
+  before and after**. The five skips are the outbox tests that need a database and skip without one; they
+  skipped in both runs. Quoting both is the point: formatting cannot change behaviour, and this shows it
+  did not.
+- This is the fleet-wide drift NIAGA-381's sweep found. Still open: `service-marketplace` 6 (NIAGA-409),
+  `service-auth` 1 and `service-inventory` 1 (NIAGA-410). `service-catalog` (NIAGA-381) and `service-order`
+  (NIAGA-382) are done.
+
+
 ### Changed — the `| test |` row names the container, because the row is what gets copied (NIAGA-384)
 
 - Smart App Control blocks a freshly linked Go test binary at random on this laptop and reports it as a

@@ -20,8 +20,8 @@ type HealthCheckFunc struct {
 	Fn        func(ctx context.Context) error
 }
 
-func (f HealthCheckFunc) Name() string                       { return f.CheckName }
-func (f HealthCheckFunc) Check(ctx context.Context) error    { return f.Fn(ctx) }
+func (f HealthCheckFunc) Name() string                    { return f.CheckName }
+func (f HealthCheckFunc) Check(ctx context.Context) error { return f.Fn(ctx) }
 
 // HealthStatus is the canonical body returned by /health and /health/ready.
 type HealthStatus struct {
@@ -38,8 +38,8 @@ const readinessTimeout = 5 * time.Second
 //
 //   - GET /health         — liveness, always 200; never touches deps.
 //   - GET /health/ready   — readiness, runs every dep concurrently with a
-//                           short timeout. Returns 200 when all pass, 503
-//                           when any fails. Body is HealthStatus either way.
+//     short timeout. Returns 200 when all pass, 503
+//     when any fails. Body is HealthStatus either way.
 //
 // Pass any number of HealthCheck instances — typical wiring is one per
 // out-of-process dependency (Postgres, Redis, NATS, MinIO, Meilisearch).

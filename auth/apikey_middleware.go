@@ -30,9 +30,9 @@ type APIKeyMiddlewareConfig struct {
 
 // APIKeyCache caches validated API keys to reduce database lookups.
 type APIKeyCache struct {
-	mu     sync.RWMutex
-	cache  map[string]*cacheEntry
-	ttl    time.Duration
+	mu    sync.RWMutex
+	cache map[string]*cacheEntry
+	ttl   time.Duration
 }
 
 type cacheEntry struct {

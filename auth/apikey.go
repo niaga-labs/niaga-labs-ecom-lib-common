@@ -29,7 +29,7 @@ var (
 type APIKey struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
-	KeyHash     string    `json:"-"` // Stored hash, never expose
+	KeyHash     string    `json:"-"`          // Stored hash, never expose
 	KeyPrefix   string    `json:"key_prefix"` // First 8 chars for identification
 	ServiceName string    `json:"service_name"`
 	Scopes      []string  `json:"scopes"`
@@ -171,14 +171,14 @@ func generateKeyID() string {
 
 // Common scopes for service-to-service communication
 const (
-	ScopeAll           = "*"
-	ScopeInventoryRead = "inventory:read"
+	ScopeAll            = "*"
+	ScopeInventoryRead  = "inventory:read"
 	ScopeInventoryWrite = "inventory:write"
-	ScopeOrderRead     = "order:read"
-	ScopeOrderWrite    = "order:write"
-	ScopeAgentRead     = "agent:read"
-	ScopeAgentWrite    = "agent:write"
-	ScopeAdminAll      = "admin:*"
+	ScopeOrderRead      = "order:read"
+	ScopeOrderWrite     = "order:write"
+	ScopeAgentRead      = "agent:read"
+	ScopeAgentWrite     = "agent:write"
+	ScopeAdminAll       = "admin:*"
 )
 
 // PredefinedScopes returns common scope groups.

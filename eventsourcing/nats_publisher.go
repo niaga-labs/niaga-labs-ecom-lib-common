@@ -39,11 +39,11 @@ func NewNATSEventPublisher(js nats.JetStreamContext, config NATSPublisherConfig,
 		if err == nats.ErrStreamNotFound {
 			// Create the stream
 			_, err = js.AddStream(&nats.StreamConfig{
-				Name:     config.StreamName,
-				Subjects: []string{config.SubjectBase + ".>"},
-				Storage:  nats.FileStorage,
+				Name:      config.StreamName,
+				Subjects:  []string{config.SubjectBase + ".>"},
+				Storage:   nats.FileStorage,
 				Retention: nats.LimitsPolicy,
-				MaxAge:   24 * 60 * 60 * 1e9, // 24 hours
+				MaxAge:    24 * 60 * 60 * 1e9, // 24 hours
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create stream: %w", err)
