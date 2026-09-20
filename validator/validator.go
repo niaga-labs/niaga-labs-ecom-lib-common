@@ -14,11 +14,11 @@ var (
 // NewValidator creates a new validator instance
 func NewValidator() *validator.Validate {
 	v := validator.New()
-	
+
 	// Register custom validators
 	_ = v.RegisterValidation("email", validateEmail)
 	_ = v.RegisterValidation("phone", validatePhone)
-	
+
 	return v
 }
 
@@ -35,13 +35,13 @@ func validatePhone(fl validator.FieldLevel) bool {
 // FormatValidationErrors formats validation errors into a map
 func FormatValidationErrors(err error) map[string]string {
 	errors := make(map[string]string)
-	
+
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range validationErrors {
 			errors[e.Field()] = formatErrorMessage(e)
 		}
 	}
-	
+
 	return errors
 }
 
