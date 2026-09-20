@@ -23,7 +23,7 @@ Global rules live in `~/.claude/`; this file only adds what is specific here.
 |---|---|
 | install | `go mod download` |
 | build | `go build ./...` |
-| test | `go test ./...` |
+| test | **In the container** (HQ-22) — `cd ~/Documents/niaga-labs/dev-infra && ./dev.ps1 gotest <ABSOLUTE-PATH-TO-THIS-REPO> "test" "./..." "-v" "-count=1"`. Native `go test ./...` still runs, but Smart App Control blocks a freshly linked test binary at random and reports it as a FAIL (NIAGA-76), so a red from it is not evidence about the code — **quote container counts, never native ones**. Quote every go argument: an unquoted `-v` is swallowed by `dev.ps1`, never reaches `go test`, and a green run prints `PASS: 0`. |
 | lint | `gofmt -l . && go vet ./...` |
 
 
