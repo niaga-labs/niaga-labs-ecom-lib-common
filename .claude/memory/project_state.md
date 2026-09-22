@@ -20,7 +20,7 @@ metadata:
   and service-inventory 1 (NIAGA-410).
 - **Next**: nothing outstanding here from this unit.
 
-## 2026-09-06 state (resume here)
+## 2026-09-06 state
 
 - **Repo:** `main`, branch `feat/NIAGA-123-back-in-stock-subject`. Public since 2026-09-05.
 - **This unit is ONE THIRD of NIAGA-123**, and the order matters: lib-common declares
