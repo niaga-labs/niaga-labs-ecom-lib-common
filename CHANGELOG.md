@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — CI runs the integration-tagged tests (NIAGA-338)
+
+- New `.github/workflows/go-integration.yml`, a reusable workflow every Go repo
+  calls as its own `Integration` job, and a first `ci.yml` here (gofmt, vet,
+  test, and that job). It runs: a throwaway Postgres loaded with infra-database's schema
+  and the `database` seeds (`--e2e`), NATS, and `go test -tags integration ./...`. Until now CI never passed the tag,
+  so these files were not even compiled there. It needs the org secret
+  `WORKSPACE_PAT` (NIAGA-199) and fails with a named error without it.
+  Proved locally (129 pass, 0 fail, 0 skip); the first real run after 2026-10-01 (HQ-126) confirms it.
+
 ### Added — `Claim` / `Complete`: an idempotency claim is a lease, so a crashed consumer's event is retried (NIAGA-357)
 
 - `CheckAndMark` writes the `events.processed` row **before** the handler runs, and every consumer read the
