@@ -23,6 +23,37 @@ jobs:
       - name: go test
         run: go test -count=1 ./...
 
+  # NIAGA-304: the dependency scan runs HERE, where the code is. It used to live in
+  # infra-platform's security-scan.yml, which cd'd into service folders that repo
+  # does not contain and passed on continue-on-error, green while scanning nothing.
+  # No continue-on-error and no `|| true`: a reachable vulnerability, or a scan
+  # that could not run, turns this job red. The version is pinned (see NIAGA-243
+  # for what `@latest` did to the linter). Build does not wait on it: a CVE
+  # published tonight should not stop a build, but it shows red on every PR.
+  vulncheck:
+    name: Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: govulncheck
+        shell: bash  # -eo pipefail, so the scan's exit code survives the tee
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./... | tee vuln-report.txt
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vuln-report
+          path: vuln-report.txt
+          if-no-files-found: error
+
   # NIAGA-338: the //go:build integration tests, against a real Postgres.
   integration:
     name: Integration

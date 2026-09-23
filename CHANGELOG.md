@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security — the dependency scan runs in this repo's own CI (NIAGA-304)
+
+- **A new `Vulnerability Check` job runs govulncheck v1.1.4 (pinned)** and uploads `vuln-report.txt`.
+  It has no `continue-on-error` and no `|| true`: a reachable vulnerability, or a scan that cannot run,
+  turns it red. Build does not wait on it.
+- **Fixed what it found: GO-2026-4985** in `otlptracehttp` v1.28.0, reachable from `telemetry/tracer.go`.
+  The exporter moves to v1.44.0, the same version as the rest of the otel modules here (core, sdk and
+  trace were already at v1.44.0). It pulls `otlptrace` v1.44.0, `proto/otlp` v1.10.0, `grpc-gateway`
+  v2.29.0 and `backoff/v5` as indirect dependencies. govulncheck reports 0 reachable after the bump.
+- Every service that imports lib-common needs the same go.mod bump; their PRs follow this one.
+
 ### Added — CI runs the integration-tagged tests (NIAGA-338)
 
 - New `.github/workflows/go-integration.yml`, a reusable workflow every Go repo
