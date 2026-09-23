@@ -5,6 +5,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — `Claim` / `Complete`: an idempotency claim is a lease, so a crashed consumer's event is retried (NIAGA-357)
+
+- `CheckAndMark` writes the `events.processed` row **before** the handler runs, and every consumer read the
+  row as "done". A consumer that died after claiming left a row that turned its redelivery into an **ack
+  without running**. This affected 28 durable consumers in four services.
+- `Claim(event, consumer, lease)` is one atomic upsert with three answers:
+  - `ClaimAcquired`: a new claim, or a takeover of a claim whose lease has expired;
+  - `ClaimCompleted`: a real duplicate, so ack;
+  - `ClaimInProgress`: another delivery holds a live lease. Nak with the returned `RetryAfter`, **never ack**.
+  `Complete` marks the event done after the handler succeeds. `DefaultClaimLease` is 2 minutes, 4x the
+  consumers' 30 s AckWait, which also closes hole 2 in `Release`'s comment (a slow handler raced by its own
+  redelivery).
+- **At-least-once, stated:** a handler that outlives its lease, or dies after its side effect but before
+  `Complete` (an email sent, the process killed), runs again. That is the chosen side. The consumers are
+  idempotent at the business level, and a duplicate is visible where a lost event is not.
+- `CheckAndMark` keeps its old meaning: its row is born completed, so a caller not yet moved behaves exactly
+  as before. `events.processed.completed_at` is infra-database #33 (merged first; the new code names the
+  column).
+- Tests: 6 integration cases on real Postgres (lifecycle, a stranded claim taken over, a 20-way race with
+  exactly 1 acquired, a 10-way stale takeover with exactly 1 winner, release, CheckAndMark compatibility).
+  Mutation-checked: going back to `ON CONFLICT DO NOTHING` fails the takeover tests. Unit suite 118 pass,
+  0 fail.
+
 ### Fixed — `gofmt -l .`, this repo's own lint command, passes on a clean checkout again (NIAGA-408)
 
 - Six files had been unformatted on `main`: `auth/apikey.go`, `auth/apikey_middleware.go`,

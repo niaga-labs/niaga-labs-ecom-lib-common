@@ -4,6 +4,9 @@ CREATE TABLE IF NOT EXISTS events.processed (
     event_id VARCHAR(100) NOT NULL,
     consumer_name VARCHAR(150) NOT NULL,
     processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- NIAGA-357: NULL while a claim is in flight, set once the handler succeeded.
+    -- infra-database owns the live schema; this copy is kept in step with it.
+    completed_at TIMESTAMPTZ,
     PRIMARY KEY (event_id, consumer_name)
 );
 
