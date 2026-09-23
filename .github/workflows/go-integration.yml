@@ -1,0 +1,157 @@
+name: Go integration tests (reusable)
+
+# NIAGA-338. Every repo's CI ran `go test ./...` without `-tags integration`,
+# and a build tag does not skip a test, it removes the file from the build. So
+# every //go:build integration test in the platform was absent from CI, and CI
+# was green whether they passed, failed or could not compile (NIAGA-337 sat
+# broken that way from the day it was written).
+#
+# One workflow, called by each Go repo as its own job, so a stack problem reads
+# as a stack problem and not as a unit-test failure:
+#
+#   integration:
+#     name: Integration
+#     uses: niaga-labs/niaga-labs-ecom-lib-common/.github/workflows/go-integration.yml@main
+#     secrets: inherit
+#
+# What it does: a throwaway Postgres (the dev-infra image) and NATS, the
+# canonical schema from infra-database loaded with that repo's own
+# load_schema.sh, the reference seeds plus the E2E fixtures from `database`
+# (--e2e: categories and products, and no MinIO, which --demo needs), then
+# `go test -tags integration ./...`.
+#
+# One database, disposable, named `niaga_scratch`, and DB_* plus every
+# *_TEST_DSN point at it. Not `niaga_db`: the tests that commit rows, TRUNCATE
+# or add a temporary constraint refuse a database called niaga_db and skip, and
+# a skip here would be a green that tested nothing. A test that checks the dev
+# DEFAULTS must clear DB_* itself (service-catalog's config test does).
+#
+# infra-database and database are PRIVATE, so this needs the org secret WORKSPACE_PAT, the
+# same one infra-platform's api-conformance needs (NIAGA-199, an owner step).
+# Without it the job fails with a named error, never a silent skip.
+
+on:
+  workflow_call:
+    inputs:
+      go-test-args:
+        description: extra arguments for go test
+        type: string
+        default: ""
+    secrets:
+      WORKSPACE_PAT:
+        required: false
+
+jobs:
+  integration:
+    name: go test -tags integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_USER: niaga
+      DB_PASSWORD: niaga_secret # secret-scan: allow  dev-only placeholder, throwaway CI database
+      DB_NAME: niaga_scratch
+      DB_SSLMODE: disable
+      NATS_URL: nats://127.0.0.1:4222
+    steps:
+      - name: Require WORKSPACE_PAT
+        env:
+          HAS_PAT: ${{ secrets.WORKSPACE_PAT != '' }}
+        run: |
+          if [ "$HAS_PAT" != "true" ]; then
+            echo "::error::WORKSPACE_PAT is not set. The integration job reads the private infra-database schema with it (NIAGA-199 / NIAGA-338). Add it as an org Actions secret, and call this workflow with 'secrets: inherit'."
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check out infra-database (the schema)
+        uses: actions/checkout@v4
+        with:
+          repository: niaga-labs/niaga-labs-ecom-infra-database
+          ref: main
+          path: .infra-database
+          token: ${{ secrets.WORKSPACE_PAT }}
+
+      # The seeds: some tests need a warehouse, a category or a product to
+      # exist and skip without one, which in CI would be a green that tested nothing.
+      - name: Check out database (the seeds)
+        uses: actions/checkout@v4
+        with:
+          repository: niaga-labs/niaga-labs-ecom-database
+          ref: main
+          path: .database
+          token: ${{ secrets.WORKSPACE_PAT }}
+
+      # Same as each repo's test job (NIAGA-69): go.mod's `../lib-common`
+      # replace exists only on a laptop. lib-common itself has no such replace.
+      - name: Check out lib-common beside this repo
+        if: github.event.repository.name != 'niaga-labs-ecom-lib-common'
+        uses: actions/checkout@v4
+        with:
+          repository: niaga-labs/niaga-labs-ecom-lib-common
+          ref: main
+          path: .lib-common
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Repoint the lib-common replace at that checkout
+        if: github.event.repository.name != 'niaga-labs-ecom-lib-common'
+        run: go mod edit -replace github.com/niaga-labs/niaga-labs-ecom-lib-common=./.lib-common
+
+      # docker run, not a `services:` block: NATS needs `-js`, and a service
+      # container cannot take a command. load_schema.sh also reaches Postgres
+      # through `docker exec`, so the container needs a name.
+      - name: Start Postgres and NATS
+        run: |
+          docker run -d --name ci-postgres -p 5432:5432 \
+            -e POSTGRES_USER="$DB_USER" -e POSTGRES_PASSWORD="$DB_PASSWORD" -e POSTGRES_DB="$DB_NAME" \
+            postgis/postgis:16-3.4
+          docker run -d --name ci-nats -p 4222:4222 nats:2.10 -js
+          # TCP, not the socket: the image's init server answers on the socket
+          # and then restarts, so a socket check passes too early.
+          for i in $(seq 1 60); do
+            docker exec ci-postgres pg_isready -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          docker logs ci-postgres | tail -20
+          echo "::error::Postgres did not come up"
+          exit 1
+
+      - name: Load the canonical schema and the reference seeds
+        env:
+          PG_CONTAINER: ci-postgres
+        run: |
+          bash .infra-database/scripts/load_schema.sh
+          bash .database/seed_local.sh --e2e
+
+      # -p 1: one database, and some packages TRUNCATE tables others read.
+      - name: go test -tags integration
+        run: |
+          DSN="host=$DB_HOST port=$DB_PORT user=$DB_USER password=$DB_PASSWORD dbname=$DB_NAME sslmode=disable"
+          export OUTBOX_TEST_DSN="$DSN" TEST_DB_DSN="$DSN" \
+            SERVICE_CATALOG_TEST_DSN="$DSN" SERVICE_INVENTORY_TEST_DSN="$DSN" SERVICE_ORDER_TEST_DSN="$DSN"
+          set +e
+          go test -p 1 -count=1 -tags integration -json ${{ inputs.go-test-args }} ./... > integration.json
+          status=$?
+          set -e
+          T='"Package":"[^"]*","Test"'
+          pass=$(grep -c "\"Action\":\"pass\",$T" integration.json || true)
+          fail=$(grep -c "\"Action\":\"fail\",$T" integration.json || true)
+          skip=$(grep -c "\"Action\":\"skip\",$T" integration.json || true)
+          echo "integration: pass=$pass fail=$fail skip=$skip exit=$status" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            grep -E '"Action":"(fail|output)"' integration.json | grep -E 'FAIL|--- FAIL|panic|\.go:[0-9]+' | tail -60 || true
+            exit "$status"
+          fi
+          # A green with a zero next to it is a red: no test ran.
+          if [ "$pass" -eq 0 ]; then
+            echo "::error::go test passed but ran 0 tests"
+            exit 1
+          fi

@@ -29,6 +29,7 @@ Global rules live in `~/.claude/`; this file only adds what is specific here.
 
 ## Conventions that differ from the global rules
 
+- **CI covers the integration-tagged tests (NIAGA-338).** The `Integration` job in `ci.yml` calls lib-common's `go-integration.yml` and runs `go test -tags integration ./...` against a throwaway Postgres with the canonical schema and the E2E seeds, one database per repo, so tests that need a warehouse or a category run instead of skipping. It needs the org secret `WORKSPACE_PAT` (NIAGA-199).
 - **`infra-database/schemas/` owns the schema, not this repo.** A schema change is a migration there plus a
   re-export, never an `AutoMigrate` and never a hand edit of a dumped schema file.
 - Default branch is `main`.
