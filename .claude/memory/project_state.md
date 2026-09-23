@@ -5,7 +5,14 @@ metadata:
   type: project
 ---
 
-## 2026-09-20 state (resume here) — NIAGA-408
+## 2026-09-24 state (resume here) — NIAGA-357 Claim / Complete
+
+- Branch `feat/NIAGA-357-claim-lease`. It needs `events.processed.completed_at` (infra-database #33,
+  merged and applied). Integration: `DB_HOST=dev-postgres go test -tags=integration ./eventsourcing/ -run
+  Claim` on the dev network, 6 pass. Unit: 118 pass, 0 fail (5 outbox skips without a DB, as before).
+- The four consumers move to Claim/Complete in their own PRs. `CheckAndMark` stays for anything not moved.
+
+## 2026-09-20 state — NIAGA-408
 
 - **`gofmt -l .` passes here again.** Six files had been unformatted on `main` (`auth/apikey.go`,
   `auth/apikey_middleware.go`, `config/config.go`, `eventsourcing/nats_publisher.go`,
