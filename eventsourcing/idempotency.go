@@ -93,13 +93,16 @@ func (c *IdempotencyChecker) CheckAndMark(ctx context.Context, eventID, consumer
 // "these events are done or in flight", and the smallest correct change is to
 // stop lying about the failed ones.
 //
-// THE HOLES THAT REMAIN -- plural, and an earlier draft of this comment said
-// "the remaining hole" as though there were one:
+// THE HOLES, and which are closed. Holes 1 and 2 are closed for a caller that
+// uses Claim/Complete (NIAGA-357; all four consumers do, as of 2026-09-24). They
+// remain open ONLY for a caller still on CheckAndMark:
 //
 //  1. A process that dies between claiming and releasing strands that one event.
-//     Strictly better than the previous behaviour, where EVERY handler error
-//     stranded one, but not nothing.
-//  2. AckWait expiring while the handler is still running. The redelivery finds
+//     CLOSED BY Claim: an uncompleted claim is a lease, taken over once it runs
+//     out, so the redelivery runs instead of being acked as a duplicate.
+//  2. AckWait expiring while the handler is still running. CLOSED BY Claim: the
+//     lease (DefaultClaimLease, 4x AckWait) makes that redelivery ClaimInProgress,
+//     which is nak'd, never acked. What follows describes the CheckAndMark case. The redelivery finds
 //     the claim, acks, and terminates a message the first delivery is still
 //     working on; when that one then fails, Release deletes the claim and the NAK
 //     lands on an already-acked message. The event is lost, never reaches the
