@@ -42,7 +42,7 @@ Global rules live in `~/.claude/`; this file only adds what is specific here.
 - Config: `config/`
 - Tests: **16** `*_test.go` files across `auth`, `bizday`, `domain`, `eventsourcing`, `monitoring`, `nats`, `outbox` and
   `response` (counted with `find` 2026-09-24). Measured 2026-09-28 natively in WSL with `-json`: **126 runs pass, 0 fail,
-  5 skip** by default, and **131 / 0 / 0** with `OUTBOX_TEST_DSN` at a scratch database (NIAGA-564; 118 on 2026-09-24 (was 89 top-level + 22 subtests on 2026-09-17). Plus **6** `-tags integration` claim tests in
+  5 skip** by default, and **131 / 0 / 0** with `OUTBOX_TEST_DSN` at a scratch database (NIAGA-564; 118 on 2026-09-24; 89 top-level + 22 subtests on 2026-09-17). Plus **6** `-tags integration` claim tests in
   `eventsourcing/idempotency_claim_integration_test.go` (NIAGA-357), which need `DB_HOST` on the dev network.
   The 5 skips are `outbox/processor_pg_test.go`, which needs real `SKIP LOCKED`, runs only with
   `OUTBOX_TEST_DSN` pointing at a scratch Postgres database, and refuses `niaga_db` by asking the server which database
@@ -56,4 +56,4 @@ Global rules live in `~/.claude/`; this file only adds what is specific here.
 | NIAGA-69 | **Done** | — | CI could not resolve this module from a service repo. Settled by the owner ruling of 2026-09-05: **this repo is public**, so a workflow checks it out with no token. The eight services with CI workflows now do exactly that |
 | NIAGA-117 | **Done** | — | the subject catalog is audited and documented in `README.md` — 24 subjects, each with a publisher and consumers or a stated reason it has neither. service-marketplace needed no change: it already published on the canonical constants |
 | NIAGA-76 | To Do | owner | Windows blocks the `eventsourcing` test binary after the rename |
-| NIAGA-151 | To Do | — | deep review of this repo and `service-auth` |
+| NIAGA-151 | **Done** | — | deep review of this repo and `service-auth`: `../docs/reviews/2026-09-lib-common-auth.md`. This repo's findings closed in NIAGA-564 and NIAGA-565 (#38) |
