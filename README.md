@@ -74,6 +74,7 @@ Publisher and consumer are read from where the constant is used — `internal/ev
 | `events.customer.back_in_stock` | service-customer | service-notification *(NIAGA-123, landing)* |
 | `events.marketplace.sync.completed` | service-marketplace | **none** |
 | `events.marketplace.sync.failed` | service-marketplace | **none** |
+| `events.marketplace.order.supplier_handoff` | service-marketplace (NIAGA-548, in progress) | service-notification (NIAGA-549, in progress) |
 | `events.customer.created` | **none — Reserved** | none |
 | `events.agent.commission.paid` | **none — Reserved** | none |
 

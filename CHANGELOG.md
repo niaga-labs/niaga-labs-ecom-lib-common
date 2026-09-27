@@ -14,6 +14,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Measured locally with govulncheck v1.1.4 (CI's version): 28 findings and exit 3 under 1.25.0, 0 and exit 0 under
   1.25.13. The `go 1.25.0` language line is unchanged, so consumers are not forced up. The ten service repos carry the
   same pin: NIAGA-552.
+### Added — the dropship hand-off event (NIAGA-546)
+
+- `SubjectMarketplaceSupplierHandoff` = `events.marketplace.order.supplier_handoff` (domain `marketplace`, carried by
+  `EVENTS_MARKETPLACE`). It is declared ahead of both ends, like `SubjectCustomerBackInStock` was:
+  service-marketplace publishes it (NIAGA-548) and service-notification consumes it (NIAGA-549).
+- `SupplierHandoffPayload` (`eventsourcing/supplier_handoff.go`) carries everything the supplier email needs. The
+  label travels as a MinIO key, never as bytes on the bus. The payload holds no buyer contact beyond what is printed on
+  the label. `Deliverable()` names the minimum the consumer needs.
+- Tests pin the exact JSON keys, the round trip and the absence of buyer fields. The self-updating catalog test fails
+  if the subject is left out of `SubjectDomains`. The README subject table gains the row.
 
 ### Security — the dependency scan runs in this repo's own CI (NIAGA-304)
 

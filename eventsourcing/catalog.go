@@ -41,6 +41,15 @@ const (
 	SubjectMarketplaceSyncCompleted = "events.marketplace.sync.completed"
 	SubjectMarketplaceSyncFailed    = "events.marketplace.sync.failed"
 
+	// IN PROGRESS — NIAGA-277 (dropship hand-off). Declared ahead of both ends,
+	// the same way SubjectCustomerBackInStock was: service-marketplace publishes
+	// it when an admin sends a marketplace order to its supplier (NIAGA-548), and
+	// service-notification consumes it to email that supplier the shipping label
+	// and the item lines (NIAGA-549). One event per supplier per hand-off. The
+	// payload is SupplierHandoffPayload (supplier_handoff.go). Carried by
+	// EVENTS_MARKETPLACE (events.marketplace.>).
+	SubjectMarketplaceSupplierHandoff = "events.marketplace.order.supplier_handoff"
+
 	// IN PROGRESS — NIAGA-123. Not Reserved: this one is mid-build, and the
 	// publisher and consumer land in the same ticket. Deliberately declared ahead
 	// of both ends so service-customer and service-notification have one shape to
@@ -96,6 +105,7 @@ var SubjectDomains = map[string]string{
 	SubjectSupportTicketResolved:       "support",
 	SubjectMarketplaceSyncCompleted:    "marketplace",
 	SubjectMarketplaceSyncFailed:       "marketplace",
+	SubjectMarketplaceSupplierHandoff:  "marketplace",
 	SubjectCustomerBackInStock:         "customer",
 	SubjectCustomerCreated:             "customer",
 	SubjectAgentCommissionPaid:         "agent",
