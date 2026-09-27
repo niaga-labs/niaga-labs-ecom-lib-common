@@ -5,7 +5,15 @@ metadata:
   type: project
 ---
 
-## 2026-09-24 state (resume here) — NIAGA-357 Claim / Complete
+## 2026-09-28 state (resume here) — NIAGA-564/565: readiness budget, dead code gone, outbox test guard
+
+- `/health/ready` returns within its budget. `saga/`, the legacy NATS publisher and the unused token blacklist are
+  deleted (no importers anywhere).
+- The outbox test guard asks the server for the database name (NIAGA-565). A DSN-text check had let a URL DSN
+  truncate the dev `outbox.events`.
+- Tests: 126 pass / 0 fail / 5 skip by default; 131 / 0 / 0 with `OUTBOX_TEST_DSN` at a scratch database.
+
+## 2026-09-24 state — NIAGA-357 Claim / Complete
 
 - Branch `feat/NIAGA-357-claim-lease`. It needs `events.processed.completed_at` (infra-database #33,
   merged and applied). Integration: `DB_HOST=dev-postgres go test -tags=integration ./eventsourcing/ -run

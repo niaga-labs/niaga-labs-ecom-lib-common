@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — /health/ready answers within its budget; dead and misleading code removed (NIAGA-564, NIAGA-565)
+
+- `middleware/health.go` `runChecks` read results with no `select` on the context, so a check that ignored cancellation
+  held `/health/ready` open for as long as it hung, not the 5 s budget. It now returns when the budget ends and reports
+  every check that did not answer as `fail: no answer within the readiness budget`. Against the old code the new test
+  hangs until the test timeout.
+- **Deleted, each imported by nothing** (checked in every Niaga and Kilat repo):
+  - `saga/`: its orchestrator discarded most persistence errors, and its ids were time-based, so they collided.
+  - `eventsourcing/nats_publisher.go`: a `DOMAIN_EVENTS` stream on `events.>` that would clash with the per-domain
+    streams if wired.
+  - `auth/blacklist.go`: consulted by no middleware, while a service log line implied it was on.
+
+  `go mod tidy` changed nothing.
+- `outbox/processor.go`: the subject comment said it was built from the aggregate type; it is the event type alone.
+- **NIAGA-565:** the outbox Postgres tests refused `niaga_db` only when the DSN text contained `dbname=niaga_db`. A URL
+  DSN walked past the check and the test truncated the shared dev `outbox.events` (2026-09-28, dev data only).
+  `refuseSharedDB` now asks the server (`SELECT current_database()`), which covers every DSN form. A test proves both
+  forms are refused, and the same URL DSN replayed is refused with the dev rows unchanged.
+
 ### Security — build with Go 1.25.13, not 1.25.0 (NIAGA-551)
 
 - `go.mod` gains `toolchain go1.25.13`. CI's `setup-go` installs exactly what `go.mod` names, and with no toolchain line

@@ -10,8 +10,8 @@ package outbox
 
 import (
 	"errors"
+	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -37,18 +37,34 @@ CREATE TABLE IF NOT EXISTS outbox.events (
     retry_count integer DEFAULT 0 NOT NULL
 );`
 
+// refuseSharedDB asks the server which database the connection reached and
+// refuses niaga_db, where every service keeps its outbox rows (NIAGA-565).
+// It used to look for "dbname=niaga_db" in the DSN text, so the URL form
+// walked past it and the TRUNCATE below emptied the shared dev outbox on
+// 2026-09-28. The server's answer covers every DSN form, PGDATABASE included.
+func refuseSharedDB(db *gorm.DB) error {
+	var name string
+	if err := db.Raw("SELECT current_database()").Scan(&name).Error; err != nil {
+		return fmt.Errorf("read the database name before TRUNCATE: %w", err)
+	}
+	if name == "niaga_db" {
+		return errors.New("refusing to TRUNCATE outbox.events in niaga_db; point OUTBOX_TEST_DSN at a scratch database")
+	}
+	return nil
+}
+
 func pgTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("OUTBOX_TEST_DSN")
 	if dsn == "" {
 		t.Skip("OUTBOX_TEST_DSN not set: these tests need a real Postgres for SKIP LOCKED")
 	}
-	if strings.Contains(dsn, "dbname=niaga_db") {
-		t.Fatal("refusing to TRUNCATE outbox.events in niaga_db; point OUTBOX_TEST_DSN at a scratch database")
-	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatalf("open: %v", err)
+	}
+	if err := refuseSharedDB(db); err != nil {
+		t.Fatal(err)
 	}
 	if err := db.Exec(outboxDDL).Error; err != nil {
 		t.Fatalf("ddl: %v", err)
