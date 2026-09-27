@@ -2,6 +2,11 @@ module github.com/niaga-labs/niaga-labs-ecom-lib-common
 
 go 1.25.0
 
+// CI installs exactly what go.mod names (setup-go go-version-file). 1.25.0
+// carries 28 stdlib vulnerabilities govulncheck reaches; 1.25.13 fixes them
+// all (NIAGA-551). The language line stays 1.25.0 so consumers are not forced up.
+toolchain go1.25.13
+
 require (
 	github.com/getsentry/sentry-go v0.40.0
 	github.com/getsentry/sentry-go/gin v0.40.0
