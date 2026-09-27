@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security — build with Go 1.25.13, not 1.25.0 (NIAGA-551)
+
+- `go.mod` gains `toolchain go1.25.13`. CI's `setup-go` installs exactly what `go.mod` names, and with no toolchain line
+  that was 1.25.0. That release carries 28 stdlib vulnerabilities which govulncheck finds reachable from `auth`, `nats`
+  and `telemetry` (net/url, crypto/tls, crypto/x509, net/http, encoding/xml, …), all fixed in 1.25.13. The Vulnerability
+  Check has been red on `main` since at least 2026-09-23.
+- Measured locally with govulncheck v1.1.4 (CI's version): 28 findings and exit 3 under 1.25.0, 0 and exit 0 under
+  1.25.13. The `go 1.25.0` language line is unchanged, so consumers are not forced up. The ten service repos carry the
+  same pin: NIAGA-552.
 ### Added — the dropship hand-off event (NIAGA-546)
 
 - `SubjectMarketplaceSupplierHandoff` = `events.marketplace.order.supplier_handoff` (domain `marketplace`, carried by
