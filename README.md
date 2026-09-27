@@ -33,7 +33,6 @@ is a count of *CI workflows*, not of lib-common's consumers. An earlier draft of
 | `outbox` | the transactional outbox processor |
 | `resilience` | retry and circuit-breaker helpers |
 | `response` | the shared HTTP response envelope |
-| `saga` | saga coordination primitives |
 | `storage` | object-storage helpers |
 | `validator` | request validation |
 

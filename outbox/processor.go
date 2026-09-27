@@ -147,8 +147,9 @@ func (p *Processor) processBatch() {
 }
 
 func (p *Processor) processEvent(event Event) error {
-	// Build the subject from aggregate type and event type
-	// e.g., "order.created", "inventory.restocked"
+	// The subject IS the event type: every caller of CreateEvent passes the full
+	// canonical subject, e.g. "events.order.created" (NIAGA-564; this comment
+	// used to say it was built from the aggregate type too, which it never was).
 	subject := event.EventType
 
 	headers := map[string]string{

@@ -85,12 +85,26 @@ func runChecks(ctx context.Context, deps []HealthCheck) map[string]string {
 		}()
 	}
 
-	for range deps {
-		o := <-ch
-		if o.err == nil {
-			results[o.name] = "ok"
-		} else {
-			results[o.name] = "fail: " + o.err.Error()
+	// Collect until every check answers or the readiness budget runs out
+	// (NIAGA-564). This loop used to read the channel with no select, so a
+	// check that ignored ctx held /health/ready open for as long as it hung,
+	// not the 5 s budget -- exactly when an operator needs the endpoint. The
+	// channel is buffered, so a late check still finishes its send and exits.
+	for pending := len(deps); pending > 0; pending-- {
+		select {
+		case o := <-ch:
+			if o.err == nil {
+				results[o.name] = "ok"
+			} else {
+				results[o.name] = "fail: " + o.err.Error()
+			}
+		case <-ctx.Done():
+			for _, d := range deps {
+				if _, answered := results[d.Name()]; !answered {
+					results[d.Name()] = "fail: no answer within the readiness budget"
+				}
+			}
+			return results
 		}
 	}
 	return results

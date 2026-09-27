@@ -41,11 +41,12 @@ Global rules live in `~/.claude/`; this file only adds what is specific here.
 - Packages: `auth`, `config`, `database`, `domain`, `eventsourcing`, `lock`, `logger`, `middleware`, `monitoring`, `nats`
 - Config: `config/`
 - Tests: **16** `*_test.go` files across `auth`, `bizday`, `domain`, `eventsourcing`, `monitoring`, `nats`, `outbox` and
-  `response` (counted with `find` 2026-09-24). Measured 2026-09-24 in the container with `-json`: **118 runs pass, 0 fail,
-  5 skip** by default (was 89 top-level + 22 subtests on 2026-09-17). Plus **6** `-tags integration` claim tests in
+  `response` (counted with `find` 2026-09-24). Measured 2026-09-28 natively in WSL with `-json`: **126 runs pass, 0 fail,
+  5 skip** by default, and **131 / 0 / 0** with `OUTBOX_TEST_DSN` at a scratch database (NIAGA-564; 118 on 2026-09-24 (was 89 top-level + 22 subtests on 2026-09-17). Plus **6** `-tags integration` claim tests in
   `eventsourcing/idempotency_claim_integration_test.go` (NIAGA-357), which need `DB_HOST` on the dev network.
   The 5 skips are `outbox/processor_pg_test.go`, which needs real `SKIP LOCKED`, runs only with
-  `OUTBOX_TEST_DSN` pointing at a scratch Postgres database, and refuses to run against `niaga_db` (NIAGA-207).
+  `OUTBOX_TEST_DSN` pointing at a scratch Postgres database, and refuses `niaga_db` by asking the server which database
+  it reached (NIAGA-207; NIAGA-565 replaced a DSN-text check that a URL DSN walked past, emptying the dev outbox).
   It was not re-run with the DSN on 2026-09-16.
 
 ## Open units
