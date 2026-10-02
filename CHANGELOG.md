@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — trusted gateway client addresses (NIAGA-597)
+
+- New shared helper removes Gin's trust-all default, rejects public/invalid ranges, supports explicitly
+  empty trust, clears platform header overrides, and logs the resolved private/loopback list.
+- Added direct/trusted/IPv6/disabled/invalid configuration tests; no changes to rate limiters.
+- Added `.env.example`, including three existing telemetry reads, so library env parity is complete.
+- Native WSL: build/vet exit 0; go test 145 passing test runs, 5 skipped, 0 failed,
+  9 tested packages (counts include subtests). Environment parity exit 0.
+- Skips are existing database/fixture-dependent tests; no live stack or integration-tag suite run.
+
 ### Fixed — /health/ready answers within its budget; dead and misleading code removed (NIAGA-564, NIAGA-565)
 
 - `middleware/health.go` `runChecks` read results with no `select` on the context, so a check that ignored cancellation

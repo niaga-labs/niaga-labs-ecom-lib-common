@@ -140,3 +140,15 @@ the catalog as well as from that service's own README, which already records it 
    consumes returns `nil` and looks exactly like success (NIAGA-178, NIAGA-166).
 4. A JetStream consumer whose `FilterSubject` matches nothing is **not an error** — it is a healthy consumer
    that never fires. Prove the wiring with a message, not by reading the code (NIAGA-116).
+
+## Trusted proxy configuration
+
+Every Gin service must call `middleware.ConfigureTrustedProxies(router, logger)` after constructing
+its engine and refuse startup on error. `TRUSTED_PROXIES` accepts comma-separated loopback/private
+IPs or CIDRs; unset uses `middleware.DefaultTrustedProxies`, empty disables forwarded-header trust.
+Public ranges, trust-all ranges and malformed entries are rejected. The function first removes Gin's
+trust-all default, uses only `X-Forwarded-For`, clears platform-header overrides, and logs the resolved
+list and mode. Narrow the private defaults to your actual gateway ranges when known.
+
+The public gateway overwrites caller headers. Only private BFF listeners preserve validated forwarding;
+never expose those listeners or trusted private peers to arbitrary clients. See infra-platform LOCAL_DEV.
