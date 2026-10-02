@@ -5,7 +5,19 @@ metadata:
   type: project
 ---
 
-## 2026-09-28 state (resume here) — NIAGA-564/565: readiness budget, dead code gone, outbox test guard
+## 2026-10-02 state (resume here) — NIAGA-597: trusted proxy configuration
+
+- Shared `ConfigureTrustedProxies` policy before serving: private/loopback defaults, empty disables,
+  invalid/public ranges refuse startup; only XFF is read from trusted peers. Resolved list/mode logged.
+- `TRUSTED_PROXIES` documented in example and compose. Public nginx overwrites forged IP headers;
+  unpublished/loopback BFF listeners preserve validated forwarding. Narrow default ranges when known.
+- Native WSL build/vet exit 0; 145 passing test runs, 5 skipped, 0 failed across
+  9 tested packages. Counts include subtests; skips are existing DB/fixture tests.
+  Env parity exit 0. No live stack or integration-tag suite. Rate limiters remain in place.
+- Cross-repo set: library first, nine Gin services second, infra last. Notification is net/http.
+  Workspace next: NIAGA-628. NIAGA-591 remains held by another session.
+
+## 2026-09-28 state — NIAGA-564/565: readiness budget, dead code gone, outbox test guard
 
 - `/health/ready` returns within its budget. `saga/`, the legacy NATS publisher and the unused token blacklist are
   deleted (no importers anywhere).
